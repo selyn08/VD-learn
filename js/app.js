@@ -1,12 +1,20 @@
 document.addEventListener('DOMContentLoaded', () => {
+    const sidebar = document.getElementById('sidebar');
+    const sidebarToggle = document.getElementById('sidebar-toggle');
     const videoListContainer = document.getElementById('video-list');
     const videoPlayer = document.getElementById('video-player');
-    const videoPlayerContainer = document.getElementById('video-player-container');
     const videoPlaceholder = document.getElementById('video-placeholder');
     const videoTitle = document.getElementById('video-title');
     const videoDescription = document.getElementById('video-description');
     let activeVideoLink = null;
-    let playlistLinks = []; // To store all video link elements for autoplay
+    let playlistLinks = [];
+
+    // --- Mobile Sidebar Toggle ---
+    if (sidebarToggle) {
+        sidebarToggle.addEventListener('click', () => {
+            sidebar.classList.toggle('-translate-x-full');
+        });
+    }
 
     // Fetch video data and build the UI
     fetch('scan.php')
@@ -17,12 +25,15 @@ document.addEventListener('DOMContentLoaded', () => {
             return response.json();
         })
         .then(data => {
+            console.log("Received data from scan.php:", JSON.stringify(data, null, 2));
             if (data.error) {
                 videoListContainer.innerHTML = `<p class="text-red-500 p-4">${data.error}</p>`;
                 return;
             }
             const listHtml = createList(data.children);
+            console.log("Generated HTML for sidebar:", listHtml);
             videoListContainer.innerHTML = `<h3 class="px-2 pt-4 pb-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">My Videos</h3>${listHtml}`;
+            console.log("Sidebar HTML has been set.");
             attachEventListeners();
         })
         .catch(error => {
@@ -61,10 +72,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Attach click handlers and build the playlist
     function attachEventListeners() {
-        playlistLinks = []; // Reset playlist
+        playlistLinks = [];
         const videoLinks = document.querySelectorAll('.video-link');
         videoLinks.forEach(link => {
-            playlistLinks.push(link); // Add to our playlist array
+            playlistLinks.push(link);
             link.addEventListener('click', (e) => {
                 e.preventDefault();
                 const videoPath = link.dataset.videoPath;
@@ -90,14 +101,19 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         linkElement.classList.add('bg-primary', 'text-white');
         activeVideoLink = linkElement;
+
+        // --- Close sidebar on mobile after selection ---
+        if (window.innerWidth < 768) { // Corresponds to Tailwind's 'md' breakpoint
+            sidebar.classList.add('-translate-x-full');
+        }
     }
 
-    // Autoplay logic: Listen for when a video finishes
+    // Autoplay logic
     videoPlayer.addEventListener('ended', () => {
         const currentIndex = playlistLinks.findIndex(link => link === activeVideoLink);
         if (currentIndex > -1 && currentIndex < playlistLinks.length - 1) {
             const nextVideoLink = playlistLinks[currentIndex + 1];
-            nextVideoLink.click(); // Simulate a click to play the next video
+            nextVideoLink.click();
         } else {
             console.log('End of playlist reached.');
         }
